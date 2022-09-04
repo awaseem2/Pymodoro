@@ -7,7 +7,7 @@ from turtle import window_width
 # TODO
 # - [Done] Change buttons to be more aesthetic (use image?)
 # - [Done] move these buttons.... also can they just be images lol
-# - create pause button
+# - [Done] create pause button
 # - add plus button which adds at bottom with time
 # - chain events
 # - make timer a visual timer rather than coundown on start
@@ -37,6 +37,7 @@ title_color = "#ffffff"
 SMALL_INTERVAL = 5
 BIG_INTERVAL = 20
 ACTION_BUTTON_SCALE = 18
+PAUSE_TIMER = False
 
 class Labels(Enum):
     WORK = 1
@@ -66,7 +67,8 @@ def reset_timer():
 
 # ---------------------------- TIMER MECHANISM ------------------------------- # 
 def start_timer():
-    global reps
+    global reps, PAUSE_TIMER
+    PAUSE_TIMER = False
     reps += 1
     if time == 0:
         return
@@ -83,10 +85,36 @@ def start_timer():
         count_down()
         title_label.config(text=action_to_label[current_action])
 
+def pause_timer():
+    global PAUSE_TIMER
+    PAUSE_TIMER = True
+    animate_pause(0)
+
+def animate_pause(pause_cnt):
+    global PAUSE_TIMER, time
+    if not PAUSE_TIMER or time == 0:
+        return
+
+    count_min = math.floor(time / 60)
+    if count_min < 10:
+        count_min = f"0{count_min}"
+    count_sec = time % 60
+    # Dynamic typing allows for changing the data type of a variable
+    # Just by assigning it to a different kind of value
+    if count_sec < 10:
+        count_sec = f"0{count_sec}"
+    if pause_cnt % 2 == 0:
+        canvas.itemconfig(timer_text, text=f"{count_min} {count_sec}")
+    else:
+        canvas.itemconfig(timer_text, text=f"{count_min}:{count_sec}")
+    
+    window.after(1000, animate_pause, pause_cnt + 1)
 
 # ---------------------------- COUNTDOWN MECHANISM ------------------------------- # 
 def count_down():
-    global time
+    global time, timer, PAUSE_TIMER
+    if PAUSE_TIMER:
+        return
     count_min = math.floor(time / 60)
     if count_min < 10:
         count_min = f"0{count_min}"
@@ -97,11 +125,10 @@ def count_down():
         count_sec = f"0{count_sec}"
     canvas.itemconfig(timer_text, text=f"{count_min}:{count_sec}")
     if time > 0:
-        global timer
         time -= 1
         timer = window.after(1000, count_down)
     else:
-        start_timer()
+        # start_timer()
         marks = ""
         work_sessions = math.floor(reps/2)
         for _ in range(work_sessions):
@@ -211,7 +238,11 @@ reset_img = PhotoImage(file="stop_button.png")
 reset_img = reset_img.subsample(ACTION_BUTTON_SCALE)
 reset_button = Button(text="Reset", command = reset_timer, image=reset_img)
 reset_button.place(x=490, y=270)
-action_buttons.extend([start_button, reset_button])
+pause_img = PhotoImage(file="pause_button.png")
+pause_img = pause_img.subsample(ACTION_BUTTON_SCALE)
+pause_button = Button(text="Pause", command = pause_timer, image=pause_img)
+pause_button.place(x=550, y=270)
+action_buttons.extend([start_button, reset_button, pause_button])
 
 # pause button TODO
 
