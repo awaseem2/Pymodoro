@@ -21,7 +21,6 @@ FONT_NAME = "Courier"
 WORK_MIN = 25
 SHORT_BREAK_MIN = 5
 LONG_BREAK_MIN = 20
-reps = 0
 timer = None
 WORK_BACKGROUND_COLOR = "#d95550"
 WORK_ACTION_CTR_COLOR = "#dd6662"
@@ -61,29 +60,16 @@ def reset_timer():
     canvas.itemconfig(timer_text, text="00:00")
     title_label.config(text="Pymodoro Customizable Timer")
     check_marks.config(text="")
-    global reps
-    reps = 0
     time = 0
 
 # ---------------------------- TIMER MECHANISM ------------------------------- # 
 def start_timer():
-    global reps, PAUSE_TIMER
+    global PAUSE_TIMER
     PAUSE_TIMER = False
-    reps += 1
     if time == 0:
         return
-    # If it's the 1st/3rd/5th/7th rep
-    if reps % 8 == 0:
-        count_down()
-        title_label.config(text="Break", fg=RED)
-    # If it's the 8th rep
-    elif reps % 2 == 0:
-        count_down()
-        title_label.config(text="Break", fg=PINK)
-    # If it's the 2nd/4th/6th rep
-    else:
-        count_down()
-        title_label.config(text=action_to_label[current_action])
+    count_down()
+    title_label.config(text=action_to_label[current_action])
 
 def pause_timer():
     global PAUSE_TIMER
@@ -127,13 +113,6 @@ def count_down():
     if time > 0:
         time -= 1
         timer = window.after(1000, count_down)
-    else:
-        # start_timer()
-        marks = ""
-        work_sessions = math.floor(reps/2)
-        for _ in range(work_sessions):
-            marks += "✓"
-        check_marks.config(text=marks)
 
 def add_time(interval):
     global time
