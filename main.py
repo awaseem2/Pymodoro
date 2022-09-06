@@ -12,7 +12,7 @@ from turtle import window_width
 # - [Done] chain events
 # - [Done] Move queue over on deletion
 # - [Done] space to pause
-# - pause button becomes start button and vice versa
+# - [Done] pause button becomes start button and vice versa
 # - make timer a visual timer rather than coundown on start
 # - play noise on time ending
 
@@ -37,7 +37,7 @@ title_color = "#ffffff"
 SMALL_INTERVAL = 5
 BIG_INTERVAL = 20
 ACTION_BUTTON_SCALE = 18
-PAUSE_TIMER = False
+PAUSE_TIMER = True
 
 queue = []
 queue_buttons = []
@@ -83,7 +83,6 @@ def reset_timer():
 # ---------------------------- TIMER MECHANISM ------------------------------- # 
 def start_timer():
     global PAUSE_TIMER, curr_time
-    PAUSE_TIMER = False
     if len(queue_buttons) == 0:
         print("Error: add to queue before starting timer")
         return
@@ -95,7 +94,6 @@ def start_timer():
 
 def pause_timer():
     global PAUSE_TIMER
-    PAUSE_TIMER = True
     animate_pause(0)
 
 def animate_pause(pause_cnt):
@@ -117,6 +115,19 @@ def animate_pause(pause_cnt):
         canvas.itemconfig(timer_text, text=f"{count_min}:{count_sec}")
     
     window.after(1000, animate_pause, pause_cnt + 1)
+
+def handle_start_pause(*args):
+    global start_img, start_button, pause_img, PAUSE_TIMER
+    print('here')
+    PAUSE_TIMER = not PAUSE_TIMER
+    if PAUSE_TIMER:
+        # show start image
+        pause_timer()
+        start_button.config(image=start_img)
+    else:
+        # show pause image
+        start_timer()
+        start_button.config(image=pause_img)
 
 # ---------------------------- COUNTDOWN MECHANISM ------------------------------- # 
 def count_down():
@@ -182,6 +193,21 @@ def subtract_time(interval):
         count_sec = f"0{count_sec}"
     canvas.itemconfig(timer_text, text=f"{count_min}:{count_sec}")
 
+def labels(action):
+    global current_action
+    current_action = action
+
+    if action == "Work":
+        change_bg_color(WORK_BACKGROUND_COLOR, WORK_ACTION_CTR_COLOR)
+    elif action == "Break":
+        change_bg_color(BREAK_BACKGROUND_COLOR, BREAK_ACTION_CTR_COLOR)
+    elif action == "Food":
+        change_bg_color(FOOD_BACKGROUND_COLOR, FOOD_ACTION_CTR_COLOR)
+    elif action == "Meeting":
+        change_bg_color(MEETING_BACKGROUND_COLOR, MEETING_ACTION_CTR_COLOR)
+    elif action == "Stretch":
+        change_bg_color(STRETCH_BACKGROUND_COLOR, STRETCH_ACTION_CTR_COLOR)
+
 def change_bg_color(bg_color, action_color):
     global current_bg, current_action_color, canvas, title_label, action_buttons
     current_bg = bg_color
@@ -240,32 +266,7 @@ def add_to_queue():
     info = QueueInfo(queue_button, queue_action, queue_time, selected_time, curr_x + QUEUE_LENGTH)
     queue_buttons.append(info)
 
-
-def labels(action):
-    global current_action
-    current_action = action
-
-    if action == "Work":
-        change_bg_color(WORK_BACKGROUND_COLOR, WORK_ACTION_CTR_COLOR)
-    elif action == "Break":
-        change_bg_color(BREAK_BACKGROUND_COLOR, BREAK_ACTION_CTR_COLOR)
-    elif action == "Food":
-        change_bg_color(FOOD_BACKGROUND_COLOR, FOOD_ACTION_CTR_COLOR)
-    elif action == "Meeting":
-        change_bg_color(MEETING_BACKGROUND_COLOR, MEETING_ACTION_CTR_COLOR)
-    elif action == "Stretch":
-        change_bg_color(STRETCH_BACKGROUND_COLOR, STRETCH_ACTION_CTR_COLOR)
-
-    # TODO: add text box and random color
-
 # ---------------------------- keybinds ------------------------------- # 
-
-def pause_or_start(eventorigin):
-    global PAUSE_TIMER
-    if PAUSE_TIMER:
-        start_timer()
-    else:
-        pause_timer()
 
 def getorigin(eventorigin):
       global x_coord, y_coord
@@ -293,7 +294,7 @@ canvas.grid(column=1, row=1)
 action_buttons = []
 start_img = PhotoImage(file="play_button.png")
 start_img = start_img.subsample(ACTION_BUTTON_SCALE)
-start_button = Button(text="Start", command=start_timer, image=start_img)
+start_button = Button(text="Start", command=handle_start_pause, image=start_img)
 start_button.place(x=430, y=270)
 reset_img = PhotoImage(file="stop_button.png")
 reset_img = reset_img.subsample(ACTION_BUTTON_SCALE)
@@ -301,9 +302,9 @@ reset_button = Button(text="Reset", command = reset_timer, image=reset_img)
 reset_button.place(x=490, y=270)
 pause_img = PhotoImage(file="pause_button.png")
 pause_img = pause_img.subsample(ACTION_BUTTON_SCALE)
-pause_button = Button(text="Pause", command = pause_timer, image=pause_img)
-pause_button.place(x=550, y=270)
-action_buttons.extend([start_button, reset_button, pause_button])
+# pause_button = Button(text="Pause", command = pause_timer, image=pause_img)
+# pause_button.place(x=550, y=270)
+action_buttons.extend([start_button, reset_button])
 
 # add / subtract selected_time buttons
 interval_buttons = []
@@ -342,7 +343,7 @@ labels_buttons.extend([work_button, break_button, meeting_button, food_button, s
 
 configure_buttons()
 window.bind("<Button 1>", getorigin)
-window.bind("<space>", pause_or_start)
+window.bind("<space>", handle_start_pause)
 window.mainloop()
 
 
