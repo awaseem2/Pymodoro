@@ -11,6 +11,8 @@ from turtle import window_width
 # - [Done] add plus button which adds at bottom with selected_time
 # - [Done] chain events
 # - [Done] Move queue over on deletion
+# - [Done] space to pause
+# - pause button becomes start button and vice versa
 # - make timer a visual timer rather than coundown on start
 # - play noise on time ending
 
@@ -256,6 +258,15 @@ def labels(action):
 
     # TODO: add text box and random color
 
+# ---------------------------- keybinds ------------------------------- # 
+
+def pause_or_start(eventorigin):
+    global PAUSE_TIMER
+    if PAUSE_TIMER:
+        start_timer()
+    else:
+        pause_timer()
+
 def getorigin(eventorigin):
       global x_coord, y_coord
       x_coord = eventorigin.x
@@ -331,6 +342,7 @@ labels_buttons.extend([work_button, break_button, meeting_button, food_button, s
 
 configure_buttons()
 window.bind("<Button 1>", getorigin)
+window.bind("<space>", pause_or_start)
 window.mainloop()
 
 
