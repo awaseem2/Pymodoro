@@ -16,7 +16,9 @@ from pygame import mixer
 # - [Done] play noise on time ending
 # - [Done] change time in queue to be readable
 # - [Done] make timer a visual timer rather than coundown on start
+# - [Done] fix for > 1 hr label
 # - option to add your own label?
+# - disable clicking labels when timer is going? or ability to add while paused idk
 
 # ---------------------------- CONSTANTS ------------------------------- #
 FONT_NAME = "Courier"
@@ -44,6 +46,7 @@ ACTION_CTR_Y_LEN = 300
 LABEL_Y = 75
 LABEL_X_MOD = 10
 
+MAX_TIMER_LIMIT = 3600 * 4
 INTERVAL_Y = math.floor((ACTION_CTR_Y + ACTION_CTR_Y_LEN) / 2) + 40
 PLUS_X = 580
 SUBTRACT_X = 340
@@ -71,6 +74,9 @@ QUEUE_TEXT_SPACE = 10
 QUEUE_ACTION_Y = 425
 QUEUE_TIME_Y = 470
 
+BIG_TIMER_TEXT_SIZE = 40
+SMALL_TIMER_TEXT_SIZE = 27
+
 class QueueInfo:
     def __init__(self, rectangle, action_label, time_label, time, x_coord):
         self.rectangle = rectangle
@@ -92,7 +98,7 @@ class Labels():
 def reset_timer(just_finished = False):
     global selected_time, queue, PAUSE_TIMER, curr_time, timer_arc, start_img
     window.after_cancel(timer)
-    canvas.itemconfig(timer_text, text="00:00")
+    canvas.itemconfig(timer_text, text="00:00", font=(FONT_NAME, BIG_TIMER_TEXT_SIZE, "bold"))
     if just_finished:
         title_label.config(text="Yay! You did it!!")
     else:
@@ -165,15 +171,7 @@ def count_down():
     animate_arc()
     if curr_time == 3:
         play_sound()
-    count_min = math.floor(curr_time / 60)
-    if count_min < 10:
-        count_min = f"0{count_min}"
-    count_sec = curr_time % 60
-    # Dynamic typing allows for changing the data type of a variable
-    # Just by assigning it to a different kind of value
-    if count_sec < 10:
-        count_sec = f"0{count_sec}"
-    canvas.itemconfig(timer_text, text=f"{count_min}:{count_sec}")
+    set_timer_text(curr_time)
     if curr_time > 0:
         curr_time -= 1
         timer = window.after(1000, count_down)
@@ -212,27 +210,35 @@ def animate_arc():
         ext = 359.99
     canvas.itemconfig(timer_arc, extent=ext)
 
-def add_time(interval):
-    global selected_time
-    selected_time += interval
-    count_min = math.floor(selected_time / 60)
+def get_timer_text(time):
+    count_hr = math.floor(time / 3600)
+    count_min = math.floor((time - (count_hr*3600)) / 60);
+    count_sec = (time - (3600 * count_hr) - (count_min * 60));
+    count_hr = "" if count_hr == 0 else f"0{count_hr}:"
     if count_min < 10:
         count_min = f"0{count_min}"
-    count_sec = selected_time % 60
     if count_sec < 10:
         count_sec = f"0{count_sec}"
-    canvas.itemconfig(timer_text, text=f"{count_min}:{count_sec}")
+    return f"{count_hr}{count_min}:{count_sec}"
+
+def set_timer_text(time):
+    text = get_timer_text(time)
+    if len(text) == 5:
+        new_size = BIG_TIMER_TEXT_SIZE
+    else:
+        new_size = SMALL_TIMER_TEXT_SIZE
+    canvas.itemconfig(timer_text, text=text, font=(FONT_NAME, new_size, "bold"))
+
+def add_time(interval):
+    global selected_time
+    selected_time = min(MAX_TIMER_LIMIT, selected_time + (interval * 60))
+    set_timer_text(selected_time)
+    
 
 def subtract_time(interval):
     global selected_time
     selected_time = max(0, selected_time - (interval * 60))
-    count_min = math.floor(selected_time / 60)
-    if count_min < 10:
-        count_min = f"0{count_min}"
-    count_sec = selected_time % 60
-    if count_sec < 10:
-        count_sec = f"0{count_sec}"
-    canvas.itemconfig(timer_text, text=f"{count_min}:{count_sec}")
+    set_timer_text(selected_time)
 
 def labels(action):
     global current_action
@@ -309,13 +315,9 @@ def add_to_queue():
     text_x = curr_x + QUEUE_TEXT_SPACE
     queue_action.place(x=text_x, y=QUEUE_ACTION_Y)
 
-    count_min = math.floor(selected_time / 60)
-    if count_min < 10:
-        count_min = f"0{count_min}"
-    count_sec = selected_time % 60
-    if count_sec < 10:
-        count_sec = f"0{count_sec}"
-    queue_time = Label(text=f"{count_min}:{count_sec}", fg=title_color, bg=current_action_color, font=(FONT_NAME, 15), justify="center")
+    text = get_timer_text(selected_time)
+    text_size = 15 if len(text) == 5 else 13
+    queue_time = Label(text=text, fg=title_color, bg=current_action_color, font=(FONT_NAME, text_size), justify="center")
     queue_time.place(x=text_x, y=QUEUE_TIME_Y)
     info = QueueInfo(queue_button, queue_action, queue_time, selected_time, curr_x + QUEUE_LENGTH)
     queue_buttons.append(info)
@@ -342,7 +344,7 @@ canvas = Canvas(width=1000, height=500, bg=current_bg, highlightthickness=0)
 action_ctr = canvas.create_rectangle(ACTION_CTR_X, ACTION_CTR_Y, ACTION_CTR_X + ACTION_CTR_X_LEN, ACTION_CTR_Y + ACTION_CTR_Y_LEN, fill=current_action_color, outline="")
 selected_time = 0
 timer_arc = canvas.create_arc(ARC_INIT_X, ARC_INIT_Y, ARC_INIT_X + ARC_LENGTH, ARC_INIT_Y + ARC_LENGTH, start=90, extent=360, fill=current_action_color, outline="")
-timer_text = canvas.create_text(475, TIMER_TEXT_Y, text="00:00", fill="white", font=(FONT_NAME, 40, "bold"))
+timer_text = canvas.create_text(475, TIMER_TEXT_Y, text="00:00", fill="white", font=(FONT_NAME, BIG_TIMER_TEXT_SIZE, "bold"))
 canvas.grid(column=1, row=1)
 
 action_buttons = []
@@ -393,7 +395,7 @@ stretch_button.place(x=555 - LABEL_X_MOD, y=LABEL_Y)
 labels_buttons.extend([work_button, break_button, meeting_button, food_button, stretch_button])
 
 configure_buttons()
-window.bind("<Button 1>", getorigin)
+# window.bind("<Button 1>", getorigin)
 window.bind("<space>", handle_start_pause)
 window.mainloop()
 
