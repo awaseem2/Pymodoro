@@ -2,7 +2,7 @@ from tkinter import *
 import math
 from enum import Enum
 from turtle import window_width
-
+from pygame import mixer
 
 # TODO
 # - [Done] Change buttons to be more aesthetic (use image?)
@@ -14,7 +14,7 @@ from turtle import window_width
 # - [Done] space to pause
 # - [Done] pause button becomes start button and vice versa
 # - make timer a visual timer rather than coundown on start
-# - play noise on time ending
+# - [Done] play noise on time ending
 
 # ---------------------------- CONSTANTS ------------------------------- #
 FONT_NAME = "Courier"
@@ -74,7 +74,7 @@ def reset_timer():
     title_label.config(text="Pymodoro Customizable Timer")
     selected_time = 0
     curr_time = 0
-    PAUSE_TIMER = False
+    handle_start_pause()
     while True:
         res = pop_queue()
         if not res:
@@ -134,6 +134,8 @@ def count_down():
     global curr_time, timer, PAUSE_TIMER, canvas
     if PAUSE_TIMER:
         return
+    if curr_time == 3:
+        play_sound()
     count_min = math.floor(curr_time / 60)
     if count_min < 10:
         count_min = f"0{count_min}"
@@ -234,6 +236,10 @@ def configure_buttons():
     for button in interval_buttons:
         button.config(bg=current_action_color, bd=0, activebackground=current_action_color, highlightthickness=0, height=28, width = 28, fg='black', compound="center")
 
+def play_sound():
+    mixer.music.load('Countdown.wav')
+    mixer.music.play(0)
+
 # ---------------------------- INTERVAL MECHANISM ------------------------------- # 
 
 def pop_queue():
@@ -274,10 +280,9 @@ def getorigin(eventorigin):
       y_coord = eventorigin.y + 50
       print("mouse location = (" + str(x_coord) + ", " + str(y_coord) + ")")
 
-
-
 # ---------------------------- UI SETUP ------------------------------- #
 window = Tk()
+mixer.init()
 window.title("Pymodoro")
 current_bg = WORK_BACKGROUND_COLOR
 current_action_color = WORK_ACTION_CTR_COLOR
