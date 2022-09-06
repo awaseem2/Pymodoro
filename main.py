@@ -13,8 +13,9 @@ from pygame import mixer
 # - [Done] Move queue over on deletion
 # - [Done] space to pause
 # - [Done] pause button becomes start button and vice versa
-# - make timer a visual timer rather than coundown on start
 # - [Done] play noise on time ending
+# - [Done] change time in queue to be readable
+# - make timer a visual timer rather than coundown on start
 
 # ---------------------------- CONSTANTS ------------------------------- #
 FONT_NAME = "Courier"
@@ -259,15 +260,23 @@ def add_to_queue():
         return
     # add current action to queue
     queue.append((current_action, selected_time))
+
     # add a canvas
     last_x = QUEUE_INIT_X if len(queue_buttons) == 0 else queue_buttons[-1].x_coord
     curr_x = last_x + QUEUE_SPACE
     queue_button = canvas.create_rectangle(curr_x, QUEUE_INIT_Y, curr_x + QUEUE_LENGTH, QUEUE_INIT_Y + QUEUE_LENGTH, fill=current_action_color, outline="")
+
     queue_action = Label(text=current_action, fg=title_color, bg=current_action_color, font=(FONT_NAME, 20), justify="left")
     text_x = curr_x + QUEUE_TEXT_SPACE
     queue_action.place(x=text_x, y=QUEUE_ACTION_Y)
-    # TODO: change selected_time to be readable
-    queue_time = Label(text=str(selected_time), fg=title_color, bg=current_action_color, font=(FONT_NAME, 15), justify="center")
+
+    count_min = math.floor(selected_time / 60)
+    if count_min < 10:
+        count_min = f"0{count_min}"
+    count_sec = selected_time % 60
+    if count_sec < 10:
+        count_sec = f"0{count_sec}"
+    queue_time = Label(text=f"{count_min}:{count_sec}", fg=title_color, bg=current_action_color, font=(FONT_NAME, 15), justify="center")
     queue_time.place(x=text_x, y=QUEUE_TIME_Y)
     info = QueueInfo(queue_button, queue_action, queue_time, selected_time, curr_x + QUEUE_LENGTH)
     queue_buttons.append(info)
