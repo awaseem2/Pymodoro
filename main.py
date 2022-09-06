@@ -8,9 +8,11 @@ from turtle import window_width
 # - [Done] Change buttons to be more aesthetic (use image?)
 # - [Done] move these buttons.... also can they just be images lol
 # - [Done] create pause button
-# - add plus button which adds at bottom with selected_time
-# - chain events
+# - [Done] add plus button which adds at bottom with selected_time
+# - [Done] chain events
+# - [Done] Move queue over on deletion
 # - make timer a visual timer rather than coundown on start
+# - play noise on time ending
 
 # ---------------------------- CONSTANTS ------------------------------- #
 FONT_NAME = "Courier"
@@ -42,6 +44,8 @@ QUEUE_INIT_Y = 325
 QUEUE_LENGTH = 140
 QUEUE_SPACE = 30
 QUEUE_TEXT_SPACE = 15
+QUEUE_ACTION_Y = 410
+QUEUE_TIME_Y = 455
 
 class QueueInfo:
     def __init__(self, rectangle, action_label, time_label, time, x_coord):
@@ -52,31 +56,27 @@ class QueueInfo:
         self.x_coord = x_coord
 
 
-class Labels(Enum):
-    WORK = 1
-    BREAK = 2
-    MEETING = 3
-    FOOD = 4
-    STRETCH = 5
+class Labels():
+    WORK = "Work"
+    BREAK = "Break"
+    MEETING = "Meeting"
+    FOOD = "Food"
+    STRETCH = "Stretch"
 
-action_to_label = {
-    Labels.WORK: "Work",
-    Labels.BREAK: "Break",
-    Labels.MEETING: "Meeting",
-    Labels.FOOD: "Food",
-    Labels.STRETCH: "Stretch",
-}
 
 # ---------------------------- TIMER RESET ------------------------------- # 
 def reset_timer():
-    global selected_time, queue, PAUSE_TIMER
+    global selected_time, queue, PAUSE_TIMER, curr_time
     window.after_cancel(timer)
     canvas.itemconfig(timer_text, text="00:00")
     title_label.config(text="Pymodoro Customizable Timer")
-    check_marks.config(text="")
     selected_time = 0
+    curr_time = 0
     PAUSE_TIMER = False
-    queue.clear()
+    while True:
+        res = pop_queue()
+        if not res:
+            break
 
 # ---------------------------- TIMER MECHANISM ------------------------------- # 
 def start_timer():
@@ -136,21 +136,21 @@ def count_down():
     elif curr_time == 0:
         # delete from queue
         info = queue_buttons[0]
-        info.time_label.destroy()
-        canvas.delete(info.rectangle)
-        info.action_label.destroy()
         deleted_x = info.x_coord
-        queue_buttons.pop(0)
+        pop_queue()
         # start next queue if exists
         if len(queue_buttons) != 0:
             # shift queue over
-            for button in queue_buttons:
+            for idx, button in enumerate(queue_buttons):
                 distance = QUEUE_LENGTH + QUEUE_SPACE
+                space = 0 if idx == 0 else QUEUE_SPACE
+                new_x = deleted_x - QUEUE_LENGTH + space + QUEUE_TEXT_SPACE
+                button.action_label.place(x=new_x, y=QUEUE_ACTION_Y)
+                button.time_label.place(x=new_x, y=QUEUE_TIME_Y)
                 canvas.move(button.rectangle, distance * -1, 0)
-                new_x = button.action_label.winfo_rootx() - distance
-                new_y = button.action_label.winfo_rooty()
-                button.action_label.place(x=new_x, y=new_y)
-
+                button.x_coord = deleted_x
+                deleted_x = deleted_x + QUEUE_LENGTH
+                
             curr_time = queue_buttons[0].time
             current_action = queue_buttons[0].action_label.cget("text")
             labels(current_action)
@@ -208,6 +208,17 @@ def configure_buttons():
 
 # ---------------------------- INTERVAL MECHANISM ------------------------------- # 
 
+def pop_queue():
+    if len(queue_buttons) == 0:
+        return False
+
+    info = queue_buttons[0]
+    info.time_label.destroy()
+    canvas.delete(info.rectangle)
+    info.action_label.destroy()
+    queue_buttons.pop(0)
+    return True
+
 def add_to_queue():
     global queue, current_action_color
     if selected_time == 0:
@@ -220,10 +231,10 @@ def add_to_queue():
     queue_button = canvas.create_rectangle(curr_x, QUEUE_INIT_Y, curr_x + QUEUE_LENGTH, QUEUE_INIT_Y + QUEUE_LENGTH, fill=current_action_color, outline="")
     queue_action = Label(text=current_action, fg=title_color, bg=current_action_color, font=(FONT_NAME, 20), justify="left")
     text_x = curr_x + QUEUE_TEXT_SPACE
-    queue_action.place(x=text_x, y=410)
+    queue_action.place(x=text_x, y=QUEUE_ACTION_Y)
     # TODO: change selected_time to be readable
     queue_time = Label(text=str(selected_time), fg=title_color, bg=current_action_color, font=(FONT_NAME, 15), justify="center")
-    queue_time.place(x=text_x, y=455)
+    queue_time.place(x=text_x, y=QUEUE_TIME_Y)
     info = QueueInfo(queue_button, queue_action, queue_time, selected_time, curr_x + QUEUE_LENGTH)
     queue_buttons.append(info)
 
@@ -262,16 +273,11 @@ current_action = "Work"
 window.config(padx=50, pady=30, bg=current_bg)
 title_label = Label(text="Pymodoro Customizable Timer", fg=title_color, bg=current_bg, font=(FONT_NAME, 30), justify="left", anchor="w")
 title_label.grid(column=0, row=0, columnspan=2, sticky='ew')
-# Need to check the background colour of the canvas as well
 canvas = Canvas(width=1000, height=500, bg=current_bg, highlightthickness=0)
-# highlightthicknes is used for making the highlight disappear
-# tomato_img = PhotoImage(file="tomato.png")
 action_ctr = canvas.create_rectangle(250, 35, 700, 270, fill=current_action_color, outline="")
 selected_time = 0
 timer_text = canvas.create_text(475, 150, text="00:00", fill="white", font=(FONT_NAME, 40, "bold"))
 canvas.grid(column=1, row=1)
-# count_down(5)
-# x and y values are half of the width and the height
 
 action_buttons = []
 start_img = PhotoImage(file="play_button.png")
@@ -287,11 +293,6 @@ pause_img = pause_img.subsample(ACTION_BUTTON_SCALE)
 pause_button = Button(text="Pause", command = pause_timer, image=pause_img)
 pause_button.place(x=550, y=270)
 action_buttons.extend([start_button, reset_button, pause_button])
-
-# pause button TODO
-
-check_marks = Label(text="✓", fg=title_color, bg=current_bg)
-# check_marks.grid(column=1, row=3)
 
 # add / subtract selected_time buttons
 interval_buttons = []
@@ -316,15 +317,15 @@ interval_buttons.extend([plus, subtract, big_plus, big_subtract, next_button])
 labels_buttons = []
 label_img = PhotoImage(file="Rounded_Rectangle.png")
 label_img = label_img.subsample(10)
-work_button = Button(text="work", command=lambda: labels(action_to_label[Labels.WORK]), image=label_img)
+work_button = Button(text="work", command=lambda: labels(Labels.WORK), image=label_img)
 work_button.place(x=310, y=120)
-break_button = Button(text="break", command=lambda: labels(action_to_label[Labels.BREAK]), image=label_img)
+break_button = Button(text="break", command=lambda: labels(Labels.BREAK), image=label_img)
 break_button.place(x=372, y=120)
-meeting_button = Button(text="meeting", command=lambda: labels(action_to_label[Labels.MEETING]), image=label_img)
+meeting_button = Button(text="meeting", command=lambda: labels(Labels.MEETING), image=label_img)
 meeting_button.place(x=435, y=120)
-food_button = Button(text="food", command=lambda: labels(action_to_label[Labels.FOOD]), image=label_img)
+food_button = Button(text="food", command=lambda: labels(Labels.FOOD), image=label_img)
 food_button.place(x=495, y=120)
-stretch_button = Button(text="stretch", command=lambda: labels(action_to_label[Labels.STRETCH]), image=label_img)
+stretch_button = Button(text="stretch", command=lambda: labels(Labels.STRETCH), image=label_img)
 stretch_button.place(x=555, y=120)
 labels_buttons.extend([work_button, break_button, meeting_button, food_button, stretch_button])
 
