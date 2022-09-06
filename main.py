@@ -16,7 +16,7 @@ from pygame import mixer
 # - [Done] play noise on time ending
 # - [Done] change time in queue to be readable
 # - [Done] make timer a visual timer rather than coundown on start
-# - add your own label?
+# - option to add your own label?
 
 # ---------------------------- CONSTANTS ------------------------------- #
 FONT_NAME = "Courier"
@@ -30,7 +30,7 @@ BREAK_BACKGROUND_COLOR = "#4c9195"
 BREAK_ACTION_CTR_COLOR = "#5e9ca0"
 MEETING_BACKGROUND_COLOR = "#457ca3"
 MEETING_ACTION_CTR_COLOR = "#5889ac"
-FOOD_BACKGROUND_COLOR = "#f7b05b"
+FOOD_BACKGROUND_COLOR = "#ed9e40"
 FOOD_ACTION_CTR_COLOR = "#ffc15e"
 STRETCH_BACKGROUND_COLOR = "#453750"
 STRETCH_ACTION_CTR_COLOR = "#73648a"
@@ -90,7 +90,7 @@ class Labels():
 
 # ---------------------------- TIMER RESET ------------------------------- # 
 def reset_timer(just_finished = False):
-    global selected_time, queue, PAUSE_TIMER, curr_time, timer_arc
+    global selected_time, queue, PAUSE_TIMER, curr_time, timer_arc, start_img
     window.after_cancel(timer)
     canvas.itemconfig(timer_text, text="00:00")
     if just_finished:
@@ -100,6 +100,7 @@ def reset_timer(just_finished = False):
     selected_time = 0
     curr_time = 0
     canvas.itemconfig(timer_arc, extent=360)
+    start_button.config(image=start_img)
     handle_start_pause()
     while True:
         res = pop_queue()
@@ -109,9 +110,6 @@ def reset_timer(just_finished = False):
 # ---------------------------- TIMER MECHANISM ------------------------------- # 
 def start_timer():
     global PAUSE_TIMER, curr_time, timer_arc, current_bg, canvas
-    if len(queue_buttons) == 0:
-        print("Error: add to queue before starting timer")
-        return
     if curr_time == 0:
         curr_time = queue_buttons[0].time
     current_action = queue_buttons[0].action_label.cget("text")
@@ -144,7 +142,11 @@ def animate_pause(pause_cnt):
     window.after(1000, animate_pause, pause_cnt + 1)
 
 def handle_start_pause(*args):
-    global start_img, start_button, pause_img, PAUSE_TIMER
+    global start_img, start_button, pause_img, PAUSE_TIMER, queue_buttons
+    if len(queue_buttons) == 0:
+        print("Error: add to queue before starting timer")
+        return
+
     PAUSE_TIMER = not PAUSE_TIMER
     if PAUSE_TIMER:
         # show start image
@@ -335,7 +337,7 @@ current_action_color = WORK_ACTION_CTR_COLOR
 current_action = "Work"
 window.config(padx=50, pady=30, bg=current_bg)
 title_label = Label(text="Pymodoro Customizable Timer", fg=title_color, bg=current_bg, font=(FONT_NAME, 30), justify="left", anchor="w")
-title_label.grid(column=0, row=0, columnspan=2, sticky='ew')
+title_label.grid(column=1, row=0, columnspan=2, sticky='ew')
 canvas = Canvas(width=1000, height=500, bg=current_bg, highlightthickness=0)
 action_ctr = canvas.create_rectangle(ACTION_CTR_X, ACTION_CTR_Y, ACTION_CTR_X + ACTION_CTR_X_LEN, ACTION_CTR_Y + ACTION_CTR_Y_LEN, fill=current_action_color, outline="")
 selected_time = 0
